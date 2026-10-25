@@ -21,9 +21,10 @@ test('My First test', async ({page}, testInfo) => {
     // await runStep('submit-login', () => page.locator('#signInBtn').click());
 
 
-     await page.goto('https://rahulshettyacademy.com/loginpagePractise/');
+    await page.goto('https://rahulshettyacademy.com/loginpagePractise/');
     await  page.locator('#username').fill('rahulshettyacademy');
     await  page.locator('#password').fill('Learning@830$3mK2');
     await  page.locator('.form-control').nth(2).selectOption('Teacher');
-    await  page.locator('#signInBtn').click();
+    // await  page.locator('#signInBtn').click();
+    await page.getByRole('button', { name: 'fsdfsd' }).click();
 });
