@@ -22,6 +22,12 @@ jobs:
           node-version: lts/*
           cache: npm
 
+      - name: Set up Java for Allure
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Install dependencies
         run: npm ci
 
@@ -29,14 +35,21 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
+        id: tests
         run: npm test
 
-      - name: Upload Playwright report and traces
-        if: always()
+      - name: Generate Allure report
+        if: always() && steps.tests.outcome != 'cancelled'
+        run: npm run allure:generate
+
+      - name: Upload test reports and traces
+        if: always() && steps.tests.outcome != 'cancelled'
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-and-traces
+          name: test-reports
           path: |
+            allure-report/
+            allure-results/
             playwright-report/
             test-results/
           if-no-files-found: ignore
@@ -58,24 +71,24 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Download Playwright report
+      - name: Download test reports
         id: download-report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: playwright-report-and-traces
+          name: test-reports
           path: report-artifacts
 
       - name: Configure GitHub Pages
         if: steps.download-report.outcome == 'success'
         uses: actions/configure-pages@v5
 
-      - name: Upload report for GitHub Pages
+      - name: Upload Allure report for GitHub Pages
         id: upload-pages-artifact
-        if: steps.download-report.outcome == 'success'
+        if: steps.download-report.outcome == 'success' && hashFiles('report-artifacts/allure-report/index.html') != ''
         uses: actions/upload-pages-artifact@v3
         with:
-          path: report-artifacts/playwright-report
+          path: report-artifacts/allure-report
 
       - name: Deploy report to GitHub Pages
         id: deployment
@@ -83,5 +96,5 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Explain skipped deployment
-        if: steps.download-report.outcome != 'success'
-        run: echo "The Playwright report artifact was not created, so there is no report to publish."
+        if: steps.download-report.outcome != 'success' || hashFiles('report-artifacts/allure-report/index.html') == ''
+        run: echo "The Allure report was not generated, so there is no report to publish."
